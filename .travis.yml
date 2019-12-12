@@ -1,0 +1,37 @@
+sudo: required
+services:
+        - docker
+
+before_install:
+        - docker build -t shoyooyo/project4test -f ./client/Dockerfile.dev ./client
+script:
+        - docker run -e CI=true shoyooyo/project4test npm test
+
+          #script:
+          #        - docker build -t shoyooyo/project3
+after_success:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+        - docker build -t "$DOCKER_ID"/project4prod ./client
+        - docker build -t "$DOCKER_ID"/project4nginx ./nginx
+        - docker build -t "$DOCKER_ID"/project4server ./server
+        - docker build -t "$DOCKER_ID"/project4worker ./worker
+          # code to login to docker
+          #        - echo "$DOCKER_PASS" | docker login -u "$DOCKER_ID" --password-stdin
+          #        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+          # code to push docker image
+        - docker push "$DOCKER_ID"/project4prod
+        - docker push "$DOCKER_ID"/project4nginx
+        - docker push "$DOCKER_ID"/project4server
+        - docker push "$DOCKER_ID"/project4worker
+deploy:
+        edge: true
+        provider: elasticbeanstalk
+        region: us-east-2
+        app: multi-services-project-4
+        env: MultiServicesProject4-env
+        bucket_name: elasticbeanstalk-us-east-2-279578293836
+        bucket_path: multi-project4
+        on:
+                branch: master
+        access_key_id: $AWS_ACCESS_KEY
+        secret_access_key: $AWS_SECRET_KEY
